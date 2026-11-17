@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ប្រព័ន្ធគ្រប់គ្រងបុគ្គលិក (លីឌីង ស្តារ) - Employee Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:ital,wght@0,100..700;1,100..700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Khmer OS Battambang', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header / Navbar -->
+<!-- Header / Navbar -->
+<header class="bg-indigo-900 text-white shadow-md sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 py-5 flex justify-between items-center">
+        <div class="flex items-center space-x-3 space-x-reverse">
+            <!-- កែសម្រួលត្រង់ចំណុចនេះ៖ ប្រើ h-10 w-auto និង object-contain ដើម្បីរក្សាទំហំស្អាតមិនបែក -->
+            <img src="LS_logo.png" alt="Logo" class="h-10 w-auto object-contain rounded-lg">
+            
+            <div>
+                <h1 class="font-bold text-xl leading-tight">ប្រព័ន្ធគ្រប់គ្រងព័ត៌មានបុគ្គលិក (លីឌីង ស្តារ)</h1>
+                <p class="text-sm text-indigo-200">Worker Management Dashboard System (Leading Star)</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <!-- ប៊ូតុង Print Selected -->
+            <button onclick="goToPrintPage()" class="relative bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition shadow">
+                <i class="fa-solid fa-print"></i>
+                <span>បោះពុម្ពប័ណ្ណដែលជ្រើសរើស (Print Selected)</span>
+                <span id="selectedCountBadge" class="hidden bg-rose-600 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center shadow-sm border border-white">0</span>
+            </button>
+            <button onclick="openEmployeeModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-user-plus"></i>
+                <span>បន្ថែមបុគ្គលិក</span>
+            </button>
+            <label class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 cursor-pointer transition">
+                <i class="fa-solid fa-file-excel"></i>
+                <span>នាំចូល Excel</span>
+                <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="handleExcelUpload(event)">
+            </label>
+            <button onclick="exportToExcel()" class="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-file-export"></i>
+                <span>ទាញយក Excel</span>
+            </button>
+            <button onclick="toggleModal('configModal')" class="bg-slate-800 hover:bg-slate-900 text-slate-300 p-2.5 rounded-lg text-sm transition">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+        </div>
+    </div>
+</header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6">
+
+        <!-- Stat Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-500">បុគ្គលិកសរុប (Total Workers)</p>
+                    <p id="statTotal" class="text-2xl font-bold text-indigo-600 mt-1">0</p>
+                </div>
+                <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center">
+                    <i class="fa-solid fa-users text-lg"></i>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-500">ប្រុស (Male)</p>
+                    <p id="statMale" class="text-2xl font-bold text-blue-600 mt-1">0</p>
+                </div>
+                <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
+                    <i class="fa-solid fa-mars text-lg"></i>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-500">ស្រី (Female)</p>
+                    <p id="statFemale" class="text-2xl font-bold text-pink-600 mt-1">0</p>
+                </div>
+                <div class="w-10 h-10 bg-pink-50 text-pink-600 rounded-full flex items-center justify-center">
+                    <i class="fa-solid fa-venus text-lg"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter & Search Toolbar -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 flex flex-col md:flex-row gap-3 items-center justify-between">
+            <div class="relative w-full md:w-80">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                <input type="text" id="searchInput" oninput="applyFilters()" placeholder="ស្វែងរកតាម កូដ, ឈ្មោះ, លេខទូរស័ព្ទ..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div class="flex gap-2 w-full md:w-auto">
+                <select id="departmentFilter" onchange="applyFilters()" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="">គ្រប់ផ្នែកទាំងអស់ (All Departments)</option>
+                </select>
+                <button onclick="clearSearch()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-medium transition">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead class="bg-slate-800 text-white text-sm uppercase font-semibold">
+                <tr>
+                    <th class="py-4 px-3 text-center">
+                        <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)" class="rounded w-4 h-4 text-indigo-600 cursor-pointer">
+                    </th>
+                    <th class="py-4 px-3 text-center">#</th>
+                    <th class="py-4 px-3">Code</th>
+                    <th class="py-4 px-3">NameKhmer</th>
+                    <th class="py-4 px-3">EmployeeName</th>
+                    <th class="py-4 px-3 text-center">Sex</th>
+                    <th class="py-4 px-3">DateOfBirth</th>
+                    <th class="py-4 px-3">MaritalStatus</th>
+                    <th class="py-4 px-3 text-center">Children</th>
+                    <th class="py-4 px-3">Phone / PhoneNumber</th>
+                    <th class="py-4 px-3">IDcard</th>
+                    <th class="py-4 px-3">StartDate</th>
+                    <th class="py-4 px-3">Text14</th>
+                    <th class="py-4 px-3">DepartmentName</th>
+                    <th class="py-4 px-3">PositionName</th>
+                    <th class="py-4 px-3">SkillBonus</th>
+                    <th class="py-4 px-3">NSSFID</th>
+                    <th class="py-4 px-3">Address</th>
+                    <th class="py-4 px-3">Others</th>
+                    <th class="py-4 px-3 text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="employeeTableBody" class="divide-y divide-slate-200 text-sm">
+                <!-- Dynamic Rows -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+    <!-- MODAL: View Detail Modal -->
+    <div id="viewModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-indigo-900 text-white px-6 py-4 flex justify-between items-center">
+                <h3 class="font-bold text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-id-card"></i> ព័ត៌មានលម្អិតរបស់បុគ្គលិក
+                </h3>
+                <button onclick="toggleModal('viewModal')" class="text-slate-300 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto space-y-6 text-xs">
+                <div class="flex items-center gap-4 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                    <div class="w-14 h-14 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-xl shadow">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <h2 id="viewNameKhmer" class="text-base font-bold text-slate-800">-</h2>
+                            <span id="viewSex" class="px-2 py-0.5 text-[10px] rounded font-semibold bg-blue-100 text-blue-700">-</span>
+                        </div>
+                        <p class="text-slate-500 font-medium"><span id="viewEmployeeName">-</span> (Code: <span id="viewCode" class="text-indigo-600 font-bold">-</span>)</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white p-3 rounded-lg border border-slate-100 shadow-sm space-y-2">
+                        <p class="text-slate-400 text-[10px] uppercase font-bold tracking-wider">ព័ត៌មានផ្ទាល់ខ្លួន</p>
+                        <p><strong class="text-slate-600">ថ្ងៃខែឆ្នាំកំណើត:</strong> <span id="viewDOB" class="text-slate-800">-</span></p>
+                        <p><strong class="text-slate-600">ស្ថានភាពគ្រួសារ:</strong> <span id="viewMarital" class="text-slate-800">-</span></p>
+                        <p><strong class="text-slate-600">ចំនួនកូន:</strong> <span id="viewChildren" class="text-slate-800">-</span></p>
+                        <p><strong class="text-slate-600">អត្តសញ្ញាណប័ណ្ណ:</strong> <span id="viewIDCard" class="text-slate-800">-</span></p>
+                        <p><strong class="text-slate-600">លេខទូរស័ព្ទ:</strong> <span id="viewPhone" class="text-indigo-600 font-medium">-</span></p>
+                    </div>
+
+                    <div class="bg-white p-3 rounded-lg border border-slate-100 shadow-sm space-y-2">
+                        <p class="text-slate-400 text-[10px] uppercase font-bold tracking-wider">ព័ត៌មានការងារ</p>
+                        <p><strong class="text-slate-600">ផ្នែក (Department):</strong> <span id="viewDepartment" class="text-slate-800 font-medium">-</span></p>
+                        <p><strong class="text-slate-600">តួនាទី (Position):</strong> <span id="viewPosition" class="text-slate-800">-</span></p>
+                        <p><strong class="text-slate-600">ថ្ងៃចូលធ្វើការ:</strong> <span id="viewStartDate" class="text-slate-800">-</span></p>
+                        <p><strong class="text-slate-600">ប្រាក់ជំនាញ (Skill Bonus):</strong> <span id="viewSkillBonus" class="text-emerald-600 font-bold">$ 0</span></p>
+                        <p><strong class="text-slate-600">លេខប័ណ្ណ ប.ស.ស:</strong> <span id="viewNSSF" class="text-slate-800">-</span></p>
+                    </div>
+                </div>
+
+                <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div>
+                        <strong class="text-slate-600 block mb-0.5">Text14:</strong>
+                        <p id="viewText14" class="text-slate-700">-</p>
+                    </div>
+                    <div>
+                        <strong class="text-slate-600 block mb-0.5">អាសយដ្ឋាន (Address):</strong>
+                        <p id="viewAddress" class="text-slate-700">-</p>
+                    </div>
+                    <div>
+                        <strong class="text-slate-600 block mb-0.5">ផ្សេងៗ (Others):</strong>
+                        <p id="viewOthers" class="text-slate-700">-</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-100 px-6 py-3 flex justify-between items-center">
+                <button id="viewPrintBtn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-medium transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-print"></i> បោះពុម្ពប័ណ្ណបុគ្គលិកនេះ
+                </button>
+                <button onclick="toggleModal('viewModal')" class="px-4 py-2 bg-slate-700 hover:bg-slate-800 text-white rounded-lg text-xs font-medium transition">បិទ (Close)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Add/Edit Employee Modal -->
+    <div id="employeeModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl my-8 overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-indigo-900 text-white px-6 py-4 flex justify-between items-center">
+                <h3 id="modalTitle" class="font-bold text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-user-plus"></i> បន្ថែមបុគ្គលិកថ្មី
+                </h3>
+                <button onclick="toggleModal('employeeModal')" class="text-slate-300 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="employeeForm" onsubmit="saveEmployee(event)" class="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                <input type="hidden" id="editDocId">
+
+                <div>
+                    <label class="block font-medium mb-1 text-slate-700">កូដ (Code) *</label>
+                    <input type="text" id="fieldCode" required class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block font-medium mb-1 text-slate-700">ឈ្មោះខ្មែរ (NameKhmer)</label>
+                    <input type="text" id="fieldNameKhmer" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block font-medium mb-1 text-slate-700">ឈ្មោះអង់គ្លេស (EmployeeName)</label>
+                    <input type="text" id="fieldEmployeeName" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block font-medium mb-1 text-slate-700">ភេទ (Sex)</label>
+                    <select id="fieldSex" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <option value="M">M (ប្រុស)</option>
+                        <option value="F">F (ស្រី)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-medium mb-1 text-slate-700">ថ្ងៃខែឆ្នាំកំណើត (DateOfBirth)</label>
+                    <input type="text" id="fieldDateOfBirth" placeholder="m/d/yyyy" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block font-medium mb-1 text-slate-700">ស្ថានភាពគ្រួសារ (MaritalStatus)</label>
+                    <input type="text" id="fieldMaritalStatus" placeholder="Single / Married" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block font-medium mb-1 text-slate-700">ចំនួនកូន (Children)</label>
+                    <input type="number" id="fieldChildren" min="0" value="0" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block font-medium mb-1 text-slate-700">លេខទូរស័ព្ទ (PhoneNumber)</label>
+                    <input type="text" id="fieldPhone" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block font-medium mb-1 text-slate-700">អត្តសញ្ញាណប័ណ្ណ (IDcard)</label>
+                    <input type="text" id="fieldIDcard" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block font-medium mb-1 text-slate-700">ថ្ងៃចូលធ្វើការ (StartDate)</label>
+                    <input type="text" id="fieldStartDate" placeholder="m/d/yyyy" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block font-medium mb-1 text-slate-700">Text14</label>
+                    <input type="text" id="fieldText14" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block font-medium mb-1 text-slate-700">ផ្នែក (DepartmentName)</label>
+                    <input type="text" id="fieldDepartmentName" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block font-medium mb-1 text-slate-700">តួនាទី (PositionName)</label>
+                    <input type="text" id="fieldPositionName" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block font-medium mb-1 text-slate-700">ប្រាក់ជំនាញ (SkillBonus)</label>
+                    <input type="text" id="fieldSkillBonus" value="0" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block font-medium mb-1 text-slate-700">លេខប័ណ្ណ ប.ស.ស (NSSFID)</label>
+                    <input type="text" id="fieldNSSFID" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div class="md:col-span-3">
+                    <label class="block font-medium mb-1 text-slate-700">អាសយដ្ឋាន (Address)</label>
+                    <input type="text" id="fieldAddress" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div class="md:col-span-3">
+                    <label class="block font-medium mb-1 text-slate-700">ផ្សេងៗ (Others)</label>
+                    <textarea id="fieldOthers" rows="2" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
+                </div>
+
+                <div class="md:col-span-3 flex justify-end gap-2 mt-4 border-t pt-4">
+                    <button type="button" onclick="toggleModal('employeeModal')" class="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100 transition">បោះបង់</button>
+                    <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-floppy-disk"></i> រក្សាទុក (Save)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase Config Modal -->
+    <div id="configModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+            <div class="bg-slate-800 text-white px-6 py-4 flex justify-between items-center">
+                <h3 class="font-bold text-sm"><i class="fa-solid fa-gear"></i> កំនត់ Firebase Config System</h3>
+                <button onclick="toggleModal('configModal')" class="text-slate-300 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-6 text-xs">
+                <p class="text-slate-500 mb-3">សូមបិទភ្ជាប់ (Paste) Firebase Web Config JSON របស់អ្នកនៅទីនេះ៖</p>
+                <textarea id="firebaseConfigJson" rows="8" placeholder='{ "apiKey": "...", "authDomain": "...", "projectId": "..." }' class="w-full font-mono border border-slate-300 rounded-lg p-3 text-xs focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
+                <div class="flex justify-between items-center mt-4">
+                    <button onclick="resetFirebaseConfig()" class="text-rose-600 hover:underline">Reset មក Default</button>
+                    <div class="flex gap-2">
+                        <button onclick="toggleModal('configModal')" class="px-3 py-1.5 border rounded-lg">បោះបង់</button>
+                        <button onclick="saveFirebaseConfig()" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium">រក្សាទុក</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 text-xs border border-slate-700">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+        <span id="toastMessage">ប្រតិបត្តិការជោគជ័យ!</span>
+    </div>
+
+    <!-- Main Logic Script -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { 
+            getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, 
+            writeBatch, serverTimestamp 
+        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+      const defaultConfig = {
+             apiKey: "AIzaSyD_GOA6HL0vp1v1VKBUU4SWrSR4vRHD4qY",
+        authDomain: "documentsystem-ls.firebaseapp.com",
+        projectId: "documentsystem-ls",
+        storageBucket: "documentsystem-ls.firebasestorage.app",
+        messagingSenderId: "381404550274",
+        appId: "1:381404550274:web:f1344183e30f6ba144d09b"
+        };
+
+        let db;
+        let employeesData = [];
+        let selectedEmployeeIds = new Set(); // សម្រាប់រក្សាទុក ID បុគ្គលិកដែលបាន Tick
+        let filteredEmployees = [];
+
+        function initFirebase() {
+            const customConfig = localStorage.getItem('custom_firebase_config');
+            let config = defaultConfig;
+            if (customConfig) {
+                try {
+                    config = JSON.parse(customConfig);
+                    document.getElementById('firebaseConfigJson').value = JSON.stringify(config, null, 2);
+                } catch (e) {
+                    console.error("Invalid custom config", e);
+                }
+            }
+
+            try {
+                const app = initializeApp(config);
+                db = getFirestore(app);
+                listenToEmployees();
+            } catch (err) {
+                console.error("Firebase Initialization Error:", err);
+                showToast("Firebase Config មិនត្រឹមត្រូវទេ!", "error");
+            }
+        }
+
+        function listenToEmployees() {
+            onSnapshot(collection(db, "employees"), (snapshot) => {
+                employeesData = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                populateDepartmentFilter();
+                applyFilters();
+            }, (error) => {
+                console.error("Firestore Listen Error:", error);
+            });
+        }
+
+        function formatExcelSerialDate(val) {
+            if (!val || val === '-') return '-';
+            const num = Number(val);
+            if (!isNaN(num) && num > 0) {
+                const dateObj = new Date(Math.round((num - (25567 + 2)) * 86400 * 1000));
+                if (!isNaN(dateObj.getTime())) {
+                    const month = dateObj.getMonth() + 1;
+                    const day = dateObj.getDate();
+                    const year = dateObj.getFullYear();
+                    return `${month}/${day}/${year}`;
+                }
+            }
+            return String(val);
+        }
+
+        function populateDepartmentFilter() {
+            const deptSelect = document.getElementById('departmentFilter');
+            const currentSelected = deptSelect.value;
+            const depts = [...new Set(employeesData.map(e => e.DepartmentName).filter(Boolean))];
+
+            deptSelect.innerHTML = `<option value="">គ្រប់ផ្នែកទាំងអស់ (All Departments)</option>` + 
+                depts.map(d => `<option value="${escapeHtml(d)}" ${d === currentSelected ? 'selected' : ''}>${escapeHtml(d)}</option>`).join('');
+        }
+
+        window.applyFilters = function() {
+            const query = document.getElementById('searchInput').value.toLowerCase().trim();
+            const deptFilter = document.getElementById('departmentFilter').value;
+
+            filteredEmployees = employeesData.filter(emp => {
+                const phoneVal = emp.PhoneNumber || emp.Phone || '';
+                const matchesSearch = !query || [
+                    emp.Code, emp.NameKhmer, emp.EmployeeName, phoneVal, emp.IDcard, emp.NSSFID
+                ].some(val => String(val || '').toLowerCase().includes(query));
+
+                const matchesDept = !deptFilter || emp.DepartmentName === deptFilter;
+
+                return matchesSearch && matchesDept;
+            });
+
+            renderTable(filteredEmployees);
+            updateStats(employeesData);
+        };
+
+        
+
+       function renderTable(data) {
+            const tbody = document.getElementById('employeeTableBody');
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="20" class="text-center py-8 text-slate-400">ពុំមានទិន្នន័យឡើយ</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = data.map((emp, index) => {
+                const phoneVal = emp.PhoneNumber || emp.Phone || '-';
+                const maritalVal = emp.MaritalStatus || emp.Mari || '-';
+                const childrenVal = emp.Children ?? emp.Chi ?? 0;
+                
+                // ឆ្កឹះ Checkbox ស្វ័យប្រវត្តិប្រសិនបើ ID នេះធ្លាប់បាន Select រួចហើយ
+                const isChecked = selectedEmployeeIds.has(emp.id) ? 'checked' : '';
+
+                return `
+                    <tr onclick="viewEmployeeDetail('${emp.id}', event)" class="hover:bg-indigo-50/60 cursor-pointer transition border-b border-slate-100 text-xs">
+                        <td class="py-2.5 px-3 text-center" onclick="event.stopPropagation()">
+                            <input type="checkbox" class="emp-checkbox rounded w-4 h-4 text-indigo-600 cursor-pointer" value="${emp.id}" ${isChecked} onchange="toggleEmployeeCheckbox('${emp.id}', this)">
+                        </td>
+                        <td class="py-2.5 px-3 text-center text-slate-400">${index + 1}</td>
+                        <td class="py-2.5 px-3 font-semibold text-indigo-600">${escapeHtml(emp.Code || '-')}</td>
+                        <td class="py-2.5 px-3 font-medium text-slate-800">${escapeHtml(emp.NameKhmer || '-')}</td>
+                        <td class="py-2.5 px-3">${escapeHtml(emp.EmployeeName || '-')}</td>
+                        <td class="py-2.5 px-3 text-center">${escapeHtml(emp.Sex || '-')}</td>
+                        <td class="py-2.5 px-3">${escapeHtml(formatExcelSerialDate(emp.DateOfBirth))}</td>
+                        <td class="py-2.5 px-3">${escapeHtml(maritalVal)}</td>
+                        <td class="py-2.5 px-3 text-center">${escapeHtml(String(childrenVal))}</td>
+                        <td class="py-2.5 px-3 font-medium text-slate-700">${escapeHtml(phoneVal)}</td>
+                        <td class="py-2.5 px-3">${escapeHtml(emp.IDcard || '-')}</td>
+                        <td class="py-2.5 px-3 font-medium text-indigo-900">${escapeHtml(formatExcelSerialDate(emp.StartDate))}</td>
+                        <td class="py-2.5 px-3">${escapeHtml(emp.Text14 || '-')}</td>
+                        <td class="py-2.5 px-3"><span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">${escapeHtml(emp.DepartmentName || '-')}</span></td>
+                        <td class="py-2.5 px-3">${escapeHtml(emp.PositionName || '-')}</td>
+                        <td class="py-2.5 px-3 font-semibold text-emerald-600">$ ${escapeHtml(emp.SkillBonus || '0')}</td>
+                        <td class="py-2.5 px-3">${escapeHtml(emp.NSSFID || '-')}</td>
+                        <td class="py-2.5 px-3 truncate max-w-xs" title="${escapeHtml(emp.Address || '')}">${escapeHtml(emp.Address || '-')}</td>
+                        <td class="py-2.5 px-3 truncate max-w-xs" title="${escapeHtml(emp.Others || '')}">${escapeHtml(emp.Others || '-')}</td>
+                        <td class="py-2.5 px-3 text-center">
+                            <div class="flex items-center justify-center gap-1.5" onclick="event.stopPropagation()">
+                                <button onclick="printSingleCard('${emp.id}')" class="p-1 text-slate-600 hover:text-indigo-600 rounded" title="បោះពុម្ពប័ណ្ណ Card"><i class="fa-solid fa-print"></i></button>
+                                <button onclick="editEmployee('${emp.id}')" class="p-1 text-indigo-600 hover:text-indigo-900 rounded" title="កែប្រែ"><i class="fa-solid fa-pen-to-square"></i></button>
+                                <button onclick="deleteEmployee('${emp.id}')" class="p-1 text-rose-600 hover:text-rose-900 rounded" title="លុប"><i class="fa-solid fa-trash-can"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+      // កែសម្រួល Checkbox នីមួយៗពេល User Click
+        window.toggleEmployeeCheckbox = function(id, checkbox) {
+            if (checkbox.checked) {
+                selectedEmployeeIds.add(id);
+            } else {
+                selectedEmployeeIds.delete(id);
+            }
+        };
+
+        // Select ទាំងអស់ ឬ ដោះ ទាំងអស់ (ផ្អែកលើទិន្នន័យដែលកំពុង Filter ឃើញ)
+        window.toggleSelectAll = function(master) {
+            const checkboxes = document.querySelectorAll('.emp-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = master.checked;
+                if (master.checked) {
+                    selectedEmployeeIds.add(cb.value);
+                } else {
+                    selectedEmployeeIds.delete(cb.value);
+                }
+            });
+        };
+
+        window.viewEmployeeDetail = function(id, event) {
+            const emp = employeesData.find(e => e.id === id);
+            if (!emp) return;
+
+            document.getElementById('viewCode').textContent = emp.Code || '-';
+            document.getElementById('viewNameKhmer').textContent = emp.NameKhmer || '-';
+            document.getElementById('viewEmployeeName').textContent = emp.EmployeeName || '-';
+            document.getElementById('viewSex').textContent = emp.Sex === 'F' ? 'ស្រី (Female)' : 'ប្រុស (Male)';
+            document.getElementById('viewDOB').textContent = formatExcelSerialDate(emp.DateOfBirth);
+            document.getElementById('viewMarital').textContent = emp.MaritalStatus || emp.Mari || '-';
+            document.getElementById('viewChildren').textContent = emp.Children ?? emp.Chi ?? 0;
+            document.getElementById('viewPhone').textContent = emp.PhoneNumber || emp.Phone || '-';
+            document.getElementById('viewIDCard').textContent = emp.IDcard || '-';
+            document.getElementById('viewStartDate').textContent = formatExcelSerialDate(emp.StartDate);
+            document.getElementById('viewText14').textContent = emp.Text14 || '-';
+            document.getElementById('viewDepartment').textContent = emp.DepartmentName || '-';
+            document.getElementById('viewPosition').textContent = emp.PositionName || '-';
+            document.getElementById('viewSkillBonus').textContent = `$ ${emp.SkillBonus || '0'}`;
+            document.getElementById('viewNSSF').textContent = emp.NSSFID || '-';
+            document.getElementById('viewAddress').textContent = emp.Address || '-';
+            document.getElementById('viewOthers').textContent = emp.Others || '-';
+
+            document.getElementById('viewPrintBtn').onclick = function() {
+                printSingleCard(emp.id);
+            };
+
+            toggleModal('viewModal');
+        };
+
+        // 🔗 មុខងារបញ្ជូនទិន្នន័យបុគ្គលិកដែលបាន Select ទៅ print.html
+        window.goToPrintPage = function() {
+            const checkboxes = document.querySelectorAll('.emp-checkbox:checked');
+            const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+
+            if (selectedIds.length === 0) {
+                showToast("សូមជ្រើសរើសបុគ្គលិកយ៉ាងហោចណាស់ម្នាក់ដើម្បី Print!", "error");
+                return;
+            }
+
+            const selectedEmps = employeesData.filter(e => selectedIds.includes(e.id));
+            localStorage.setItem('print_selected_workers', JSON.stringify(selectedEmps));
+            window.open('print.html', '_blank');
+        };
+
+        window.printSingleCard = function(id) {
+            const emp = employeesData.find(e => e.id === id);
+            if (!emp) return;
+            localStorage.setItem('print_selected_workers', JSON.stringify([emp]));
+            window.open('print.html', '_blank');
+        };
+
+        function updateStats(totalData) {
+            document.getElementById('statTotal').textContent = totalData.length;
+            document.getElementById('statMale').textContent = totalData.filter(e => e.Sex === 'M').length;
+            document.getElementById('statFemale').textContent = totalData.filter(e => e.Sex === 'F').length;
+        }
+
+        window.handleExcelUpload = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array', raw: true });
+
+                    const firstSheetName = workbook.SheetNames[0];
+                    const rawJson = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], { defval: '' });
+
+                    if (rawJson.length === 0) {
+                        showToast("ឯកសារ Excel ពុំមានទិន្នន័យឡើយ!", "error");
+                        return;
+                    }
+
+                    showToast(`កំពុងនាំចូលទិន្នន័យ ${rawJson.length} ជួរ...`, "info");
+
+                    const BATCH_SIZE = 450;
+                    for (let i = 0; i < rawJson.length; i += BATCH_SIZE) {
+                        const batch = writeBatch(db);
+                        const chunk = rawJson.slice(i, i + BATCH_SIZE);
+
+                        chunk.forEach(row => {
+                            const docRef = doc(collection(db, "employees"));
+                            batch.set(docRef, {
+                                Code: String(row.Code || row['កូដ'] || '').trim(),
+                                NameKhmer: String(row.NameKhmer || row['ឈ្មោះខ្មែរ'] || '').trim(),
+                                EmployeeName: String(row.EmployeeName || row['ឈ្មោះអង់គ្លេស'] || '').trim(),
+                                Sex: String(row.Sex || row['ភេទ'] || 'M').toUpperCase().trim(),
+                                DateOfBirth: String(row.DateOfBirth || row['ថ្ងៃខែឆ្នាំកំណើត'] || '').trim(),
+                                MaritalStatus: String(row.MaritalStatus || row.Mari || row['ស្ថានភាពគ្រួសារ'] || '').trim(),
+                                Children: Number(row.Children || row.Chi || row['ចំនួនកូន']) || 0,
+                                PhoneNumber: String(row.PhoneNumber || row.Phone || row.PhoneNo || row['លេខទូរស័ព្ទ'] || '').trim(),
+                                Phone: String(row.PhoneNumber || row.Phone || row.PhoneNo || row['លេខទូរស័ព្ទ'] || '').trim(),
+                                IDcard: String(row.IDcard || row['អត្តសញ្ញាណប័ណ្ណ'] || '').trim(),
+                                StartDate: String(row.StartDate || row['ថ្ងៃចូលធ្វើការ'] || '').trim(),
+                                Text14: String(row.Text14 || '').trim(),
+                                DepartmentName: String(row.DepartmentName || row['ផ្នែក'] || '').trim(),
+                                PositionName: String(row.PositionName || row['តួនាទី'] || '').trim(),
+                                SkillBonus: String(row.SkillBonus || row['ប្រាក់ឧបត្ថម្ភជំនាញ'] || '0').trim(),
+                                NSSFID: String(row.NSSFID || row['លេខប័ណ្ណ ប.ស.ស'] || '').trim(),
+                                Address: String(row.Address || row['អាសយដ្ឋាន'] || '').trim(),
+                                Others: String(row.Others || row['ផ្សេងៗ'] || '').trim(),
+                                importedAt: serverTimestamp()
+                            });
+                        });
+
+                        await batch.commit();
+                    }
+
+                    showToast(`បាននាំចូលទិន្នន័យ ${rawJson.length} ជួរ ដោយជោគជ័យ!`, "success");
+                    event.target.value = '';
+                } catch (error) {
+                    console.error("Excel Upload Error:", error);
+                    showToast("មានបញ្ហាក្នុងការអាន ឬនាំចូលឯកសារ Excel!", "error");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        };
+
+        window.exportToExcel = function() {
+            if (filteredEmployees.length === 0) {
+                showToast("ពុំមានទិន្នន័យសម្រាប់ទាញយកទេ!", "error");
+                return;
+            }
+
+            const exportData = filteredEmployees.map(emp => ({
+                Code: emp.Code || '',
+                NameKhmer: emp.NameKhmer || '',
+                EmployeeName: emp.EmployeeName || '',
+                Sex: emp.Sex || '',
+                DateOfBirth: formatExcelSerialDate(emp.DateOfBirth),
+                MaritalStatus: emp.MaritalStatus || emp.Mari || '',
+                Children: emp.Children ?? emp.Chi ?? 0,
+                PhoneNumber: emp.PhoneNumber || emp.Phone || '',
+                IDcard: emp.IDcard || '',
+                StartDate: formatExcelSerialDate(emp.StartDate),
+                Text14: emp.Text14 || '',
+                DepartmentName: emp.DepartmentName || '',
+                PositionName: emp.PositionName || '',
+                SkillBonus: emp.SkillBonus || '0',
+                NSSFID: emp.NSSFID || '',
+                Address: emp.Address || '',
+                Others: emp.Others || ''
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Employees");
+            XLSX.writeFile(workbook, `Worker_List_${new Date().toISOString().slice(0,10)}.xlsx`);
+            showToast("ទាញយកឯកសារ Excel រួចរាល់!", "success");
+        };
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        window.clearSearch = function() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('departmentFilter').value = '';
+            applyFilters();
+        };
+
+        window.openEmployeeModal = function() {
+            document.getElementById('employeeForm').reset();
+            document.getElementById('editDocId').value = '';
+            document.getElementById('modalTitle').innerHTML = `<i class="fa-solid fa-user-plus"></i> បន្ថែមបុគ្គលិកថ្មី`;
+            toggleModal('employeeModal');
+        };
+
+        window.editEmployee = function(id) {
+            const emp = employeesData.find(e => e.id === id);
+            if (!emp) return;
+
+            document.getElementById('editDocId').value = emp.id;
+            document.getElementById('fieldCode').value = emp.Code || '';
+            document.getElementById('fieldNameKhmer').value = emp.NameKhmer || '';
+            document.getElementById('fieldEmployeeName').value = emp.EmployeeName || '';
+            document.getElementById('fieldSex').value = emp.Sex || 'M';
+            document.getElementById('fieldDateOfBirth').value = formatExcelSerialDate(emp.DateOfBirth);
+            document.getElementById('fieldMaritalStatus').value = emp.MaritalStatus || emp.Mari || '';
+            document.getElementById('fieldChildren').value = emp.Children ?? emp.Chi ?? 0;
+            document.getElementById('fieldPhone').value = emp.PhoneNumber || emp.Phone || '';
+            document.getElementById('fieldIDcard').value = emp.IDcard || '';
+            document.getElementById('fieldStartDate').value = formatExcelSerialDate(emp.StartDate);
+            document.getElementById('fieldText14').value = emp.Text14 || '';
+            document.getElementById('fieldDepartmentName').value = emp.DepartmentName || '';
+            document.getElementById('fieldPositionName').value = emp.PositionName || '';
+            document.getElementById('fieldSkillBonus').value = emp.SkillBonus || '';
+            document.getElementById('fieldNSSFID').value = emp.NSSFID || '';
+            document.getElementById('fieldAddress').value = emp.Address || '';
+            document.getElementById('fieldOthers').value = emp.Others || '';
+
+            document.getElementById('modalTitle').innerHTML = `<i class="fa-solid fa-user-pen"></i> កែប្រែព័ត៌មានបុគ្គលិក`;
+            toggleModal('employeeModal');
+        };
+
+        window.saveEmployee = async function(event) {
+            event.preventDefault();
+
+            const docId = document.getElementById('editDocId').value;
+            const phoneInput = document.getElementById('fieldPhone').value.trim();
+
+            const payload = {
+                Code: document.getElementById('fieldCode').value.trim(),
+                NameKhmer: document.getElementById('fieldNameKhmer').value.trim(),
+                EmployeeName: document.getElementById('fieldEmployeeName').value.trim(),
+                Sex: document.getElementById('fieldSex').value,
+                DateOfBirth: document.getElementById('fieldDateOfBirth').value.trim(),
+                MaritalStatus: document.getElementById('fieldMaritalStatus').value.trim(),
+                Children: Number(document.getElementById('fieldChildren').value) || 0,
+                PhoneNumber: phoneInput,
+                Phone: phoneInput,
+                IDcard: document.getElementById('fieldIDcard').value.trim(),
+                StartDate: document.getElementById('fieldStartDate').value.trim(),
+                Text14: document.getElementById('fieldText14').value.trim(),
+                DepartmentName: document.getElementById('fieldDepartmentName').value.trim(),
+                PositionName: document.getElementById('fieldPositionName').value.trim(),
+                SkillBonus: document.getElementById('fieldSkillBonus').value.trim(),
+                NSSFID: document.getElementById('fieldNSSFID').value.trim(),
+                Address: document.getElementById('fieldAddress').value.trim(),
+                Others: document.getElementById('fieldOthers').value.trim(),
+                updatedAt: serverTimestamp()
+            };
+
+            try {
+                if (docId) {
+                    await updateDoc(doc(db, "employees", docId), payload);
+                    showToast("បានកែប្រែទិន្នន័យជោគជ័យ!", "success");
+                } else {
+                    payload.createdAt = serverTimestamp();
+                    await addDoc(collection(db, "employees"), payload);
+                    showToast("បានបន្ថែមបុគ្គលិកថ្មីជោគជ័យ!", "success");
+                }
+                toggleModal('employeeModal');
+            } catch (error) {
+                console.error("Save Error:", error);
+                showToast("បរាជ័យក្នុងការរក្សាទុក!", "error");
+            }
+        };
+
+    // Function សម្រាប់បង្ហាញ/លាក់ និងប្តូរលេខ Badge ក្រហម
+function updateSelectedBadge() {
+    const badge = document.getElementById('selectedCountBadge');
+    if (!badge) return;
+    
+    const count = selectedEmployeeIds.size;
+    badge.textContent = count;
+    
+    if (count > 0) {
+        badge.classList.remove('hidden');
+    } else {
+        badge.classList.add('hidden');
+    }
+}
+
+// កែប្រែ toggleEmployeeCheckbox ឱ្យហៅ updateSelectedBadge()
+window.toggleEmployeeCheckbox = function(id, checkbox) {
+    if (checkbox.checked) {
+        selectedEmployeeIds.add(id);
+    } else {
+        selectedEmployeeIds.delete(id);
+    }
+    updateSelectAllStatus();
+    updateSelectedBadge(); // <--- បន្ថែមត្រង់នេះ
+};
+
+// កែប្រែ toggleSelectAll ឱ្យហៅ updateSelectedBadge()
+window.toggleSelectAll = function(master) {
+    const checkboxes = document.querySelectorAll('.emp-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = master.checked;
+        if (master.checked) {
+            selectedEmployeeIds.add(cb.value);
+        } else {
+            selectedEmployeeIds.delete(cb.value);
+        }
+    });
+    updateSelectedBadge(); // <--- បន្ថែមត្រង់នេះ
+};
+
+// កែប្រែ deleteEmployee ឱ្យហៅ updateSelectedBadge()
+window.deleteEmployee = async function(id) {
+    if (confirm("តើអ្នកពិតជាចង់លុបទិន្នន័យបុគ្គលិកនេះមែនទេ?")) {
+        try {
+            await deleteDoc(doc(db, "employees", id));
+            selectedEmployeeIds.delete(id);
+            updateSelectedBadge(); // <--- បន្ថែមត្រង់នេះ
+            showToast("បានលុបទិន្នន័យដោយជោគជ័យ!");
+        } catch (err) {
+            console.error("Error deleting:", err);
+            showToast("លុបមិនបានសម្រេច!", "error");
+        }
+    }
+};
+
+        window.saveFirebaseConfig = function() {
+            const jsonText = document.getElementById('firebaseConfigJson').value.trim();
+            try {
+                const parsed = JSON.parse(jsonText);
+                localStorage.setItem('custom_firebase_config', JSON.stringify(parsed));
+                toggleModal('configModal');
+                initFirebase();
+                showToast("បានរក្សាទុក Config ថ្មី!", "success");
+            } catch (e) {
+                showToast("ទ្រង់ទ្រាយ JSON Config មិនត្រឹមត្រូវទេ!", "error");
+            }
+        };
+
+        window.resetFirebaseConfig = function() {
+            localStorage.removeItem('custom_firebase_config');
+            document.getElementById('firebaseConfigJson').value = '';
+            toggleModal('configModal');
+            initFirebase();
+            showToast("បានកំណត់ Firebase Config មកដើមវិញ", "info");
+        };
+
+        window.toggleModal = function(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.toggle('hidden');
+            modal.classList.toggle('flex');
+        };
+
+        window.showToast = function(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMsg.textContent = message;
+
+            if (type === 'success') {
+                toastIcon.className = "fa-solid fa-circle-check text-emerald-400";
+            } else if (type === 'error') {
+                toastIcon.className = "fa-solid fa-circle-xmark text-rose-400";
+            } else {
+                toastIcon.className = "fa-solid fa-circle-info text-blue-400";
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3500);
+        };
+
+        initFirebase();
+    </script>
+</body>
+</html>
